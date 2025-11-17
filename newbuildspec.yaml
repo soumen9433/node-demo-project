@@ -5,41 +5,46 @@ env:
     AWS_REGION: "ap-south-1"
     ACCOUNT_ID: "465282644584"
     REPO_NAME: "cygnet/node-demo-app"
+    S3_BUCKET: "statis-codedeploy-bucket-demo"   # <-- Replace with your S3 bucket for appspec.yaml
 
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
+      - echo "Logging in to Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       
       # Generate auto increment build tag
       - export BUILD_TAG="build-${CODEBUILD_BUILD_NUMBER}"
-      - echo Build Tag = $BUILD_TAG
+      - echo "Build Tag = $BUILD_TAG"
 
   build:
     commands:
-      - echo Building Docker image...
+      - echo "Building Docker image..."
       - docker build -t node-demo-app .
       - docker tag node-demo-app:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$BUILD_TAG
 
   post_build:
     commands:
-      - echo Pushing Docker image...
+      - echo "Pushing Docker image to ECR..."
       - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$BUILD_TAG
 
-      - echo Updating task definition...
+      - echo "Updating ECS task definition..."
       - sed "s|{{IMAGE_URI}}|$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$BUILD_TAG|g" ecs/ecs-task-def.json > task-def-final.json
 
-      - echo Registering task definition...
+      - echo "Registering ECS task definition..."
       - TASK_ARN=$(aws ecs register-task-definition --cli-input-json file://task-def-final.json --query "taskDefinition.taskDefinitionArn" --output text)
-      - echo New Task Definition: $TASK_ARN
+      - echo "New Task Definition ARN: $TASK_ARN"
 
-      - echo Deploying using CodeDeploy...
+      - echo "Uploading appspec.yaml to S3..."
+      - aws s3 cp appspec.yaml s3://$S3_BUCKET/appspec.yaml
+
+      - echo "Triggering CodeDeploy deployment..."
       - aws deploy create-deployment \
           --application-name demo-app \
           --deployment-group-name demo-app-group \
-          --revision revisionType=AppSpecContent,appSpecContent="{file://appspec.yaml}" \
-          --targetInstances taskDefinitionArn=$TASK_ARN
+          --s3-location bucket=$S3_BUCKET,bundleType=yaml,key=appspec.yaml \
+          --description "Deploying ECS task $TASK_ARN" \
+          --file-exists-behavior OVERWRITE
 
 artifacts:
   files:
