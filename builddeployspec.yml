@@ -1,0 +1,47 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: "ap-south-1"
+    ACCOUNT_ID: "465282644584"
+    REPO_NAME: "cygnet/node-demo-app"
+    ECS_CLUSTER_NAME: "test"    # Replace with your ECS cluster name
+    ECS_SERVICE_NAME: "demo-app-codedeploy"    # Replace with your ECS service name
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo "Generating build tag..."
+      - export BUILD_TAG="build-${CODEBUILD_BUILD_NUMBER}"
+      - echo "Build Tag = $BUILD_TAG"
+
+  build:
+    commands:
+      - echo "Building Docker image..."
+      - docker build -t node-demo-app .
+      - docker tag node-demo-app:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$BUILD_TAG
+
+  post_build:
+    commands:
+      - echo "Pushing Docker image to ECR..."
+      - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$BUILD_TAG
+
+      - echo "Updating ECS task definition JSON..."
+      - sed "s|{{IMAGE_URI}}|$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$BUILD_TAG|g" ecs/ecs-task-def.json > task-def-final.json
+
+      - echo "Registering new ECS task definition..."
+      - TASK_ARN=$(aws ecs register-task-definition --cli-input-json file://task-def-final.json --query "taskDefinition.taskDefinitionArn" --output text)
+      - echo "New Task Definition ARN: $TASK_ARN"
+
+      - echo "Updating ECS service with new task definition..."
+      - aws ecs update-service \
+          --cluster $ECS_CLUSTER_NAME \
+          --service $ECS_SERVICE_NAME \
+          --task-definition $TASK_ARN \
+          --force-new-deployment
+
+artifacts:
+  files:
+    - task-def-final.json
