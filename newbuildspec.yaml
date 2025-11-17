@@ -35,12 +35,7 @@ phases:
       - echo "New Task Definition ARN: $TASK_ARN"
 
       - echo "Triggering CodeDeploy deployment..."
-      - >
-        aws deploy create-deployment 
-        --application-name demo-app
-        --deployment-group-name demo-app-group
-        --revision revisionType=AppSpecContent,appSpecContent="{\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"$TASK_ARN\",\"LoadBalancerInfo\":{\"ContainerName\":\"node-app\",\"ContainerPort\":8080}}}}]}"
-        --description "Deployment for $TASK_ARN"
+      - aws deploy create-deployment --application-name demo-app --deployment-group-name demo-app-group --revision "revisionType=AppSpecContent,appSpecContent={\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"$TASK_ARN\",\"LoadBalancerInfo\":{\"ContainerName\":\"node-app\",\"ContainerPort\":8080}}}}]}" --description "Deployment for $TASK_ARN"
 
 artifacts:
   files:
