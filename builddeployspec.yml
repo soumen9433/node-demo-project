@@ -5,8 +5,8 @@ env:
     AWS_REGION: "ap-south-1"
     ACCOUNT_ID: "465282644584"
     REPO_NAME: "cygnet/node-demo-app"
-    ECS_CLUSTER_NAME: "test"    # Replace with your ECS cluster name
-    ECS_SERVICE_NAME: "demo-app-codedeploy"    # Replace with your ECS service name
+    ECS_CLUSTER_NAME: "test"            # Replace with your ECS cluster name
+    ECS_SERVICE_NAME: "demo-app-codedeploy"  # Replace with your ECS service name
 
 phases:
   pre_build:
@@ -35,8 +35,9 @@ phases:
       - TASK_ARN=$(aws ecs register-task-definition --cli-input-json file://task-def-final.json --query "taskDefinition.taskDefinitionArn" --output text)
       - echo "New Task Definition ARN: $TASK_ARN"
 
-      - echo "Updating ECS service with new task definition..."
-      - aws ecs update-service \
+      - |
+        echo "Updating ECS service with new task definition..."
+        aws ecs update-service \
           --cluster $ECS_CLUSTER_NAME \
           --service $ECS_SERVICE_NAME \
           --task-definition $TASK_ARN \
