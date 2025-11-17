@@ -1,35 +1,44 @@
-'use strict'
+'use strict';
 
 const express = require('express');
 const client = require('prom-client');
-// Create a Registry to register the metrics
+
+// Create Prometheus registry & collect default Node.js metrics
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
+
 const PORT = 8080;
 const HOST = '0.0.0.0';
 
 const app = express();
 
-// Define the route for the root path ("/")
+// Root endpoint
 app.get('/', (req, res) => {
-    const sentence = 'Welcome to the CICD Automation world';
-
-    // Send the sentence as the response
-    res.json({ sentence });
+    res.json({ sentence: 'Welcome to the CICD Automation world' });
 });
 
-app.get('/metrics', async(req, res) => {
-    res.setHeader('Content-Type', register.contentType);
-    res.send(await register.metrics());
+// Prometheus /metrics endpoint
+app.get('/metrics', async (req, res) => {
+    try {
+        res.setHeader('Content-Type', register.contentType);
+        res.send(await register.metrics());
+    } catch (err) {
+        console.error('Metrics error:', err);
+        res.status(500).json({ error: 'Failed to fetch metrics' });
+    }
 });
 
+// ALB health check endpoint
 app.get('/ping', (req, res) => {
-    res.status(200).json({ message: "pong" })
+    res.status(200).json({ message: "pong" });
 });
+
+// Error simulation endpoint
 app.get('/error', (req, res) => {
-    // Simulating an internal server error (500)
-    const error = new Error('Internal Server Error');
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Internal Server Error" });
 });
-app.listen(PORT, HOST);
-console.log('running on http://${HOST}:${PORT}')
+
+// Start server
+app.listen(PORT, HOST, () => {
+    console.log(`Server is running on http://${HOST}:${PORT}`);
+});
