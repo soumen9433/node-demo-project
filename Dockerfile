@@ -1,7 +1,13 @@
-FROM node:16.20.1
-WORKDIR /app
-COPY package.json ./
-RUN npm install
+FROM node
+
+WORKDIR /usr/src/app
+
 COPY . .
-EXPOSE 5000
-CMD ["npm","run","start"]
+
+RUN npm ci --only=production
+
+EXPOSE 8080
+
+USER node
+
+CMD ["node", "index.js"]
