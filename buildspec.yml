@@ -5,9 +5,9 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR.......
-      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 434605749312.dkr.ecr.ap-south-1.amazonaws.com
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin  465282644584.dkr.ecr.ap-south-1.amazonaws.com
       - # Replace with this to your repository URI
-      - REPOSITORY_URL=434605749312.dkr.ecr.ap-south-1.amazonaws.com/nodeapp
+      - REPOSITORY_URL= 465282644584.dkr.ecr.ap-south-1.amazonaws.com/cygnet/node-demo-app
       - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_NUMBER)
   build:
     commands:
