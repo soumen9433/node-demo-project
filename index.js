@@ -38,6 +38,31 @@ app.get('/error', (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
 });
 
+/* -------------------------------------------------------------
+   CPU Stress Endpoint 
+   This will burn CPU for 60 seconds using 4 busy loops
+------------------------------------------------------------- */
+app.get('/stress', (req, res) => {
+    const durationMs = 60 * 1000; // Burn CPU for 60 seconds
+    const threads = 4;            // Increase to burn more CPU
+
+    res.send(`CPU stress started for ${durationMs / 1000} seconds`);
+
+    for (let i = 0; i < threads; i++) {
+        const start = Date.now();
+
+        setImmediate(function loop() {
+            let x = 0;
+            // Burn CPU until duration expires
+            while (Date.now() - start < durationMs) {
+                x = (x * 2) + 1;
+            }
+        });
+    }
+});
+
+/* ------------------------------------------------------------- */
+
 // Start server
 app.listen(PORT, HOST, () => {
     console.log(`Server is running on http://${HOST}:${PORT}`);
